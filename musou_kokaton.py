@@ -126,6 +126,8 @@ class Bomb(pg.sprite.Sprite):
         self.rect.centerx = emy.rect.centerx
         self.rect.centery = emy.rect.centery+emy.rect.height//2
         self.speed = 6
+        #電磁パルスを受けた状態か
+        self.mode = False
 
     def update(self):
         """
@@ -221,6 +223,30 @@ class Enemy(pg.sprite.Sprite):
             self.vy = 0
             self.state = "stop"
         self.rect.move_ip(self.vx, self.vy)
+class EMP:
+    def __init__(self, emys, bombs, screen):
+        self.emys = emys
+        self.bombs = bombs
+        self.screen = screen
+
+    def update(self):
+        """
+        EMPを発動し、敵機と爆弾を無効化する
+        """
+        for emy in self.emys:
+            emy.interval = float('inf')
+            emy.image = pg.transform.laplacian(emy.image)
+        for bomb in self.bombs:
+            bomb.speed *= 0.5
+            bomb.state = "inactive"
+            bomb.mode = True
+        # 黄色の矩形を表示
+        emp_surface = pg.Surface((WIDTH, HEIGHT))
+        emp_surface.fill((255, 255, 0))
+        emp_surface.set_alpha(64)
+        self.screen.blit(emp_surface, (0, 0))
+        pg.display.update()
+        pg.time.wait(50)  # 0.05秒待機
 
 
 class Score:
@@ -253,6 +279,7 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
+    emp = EMP(emys, bombs, screen)
 
     tmr = 0
     clock = pg.time.Clock()
@@ -263,6 +290,9 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+            if event.type == pg.KEYDOWN and event.key == pg.K_e and score.value >= 20:
+                emp.update()
+                score.value -= 20
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
@@ -279,7 +309,8 @@ def main():
             bird.change_img(6, screen)  # こうかとん喜びエフェクト
 
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
-            exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+            if bomb.mode == False: # EMPを受けているのか
+                exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.value += 1  # 1点アップ
 
         if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
@@ -288,7 +319,6 @@ def main():
             pg.display.update()
             time.sleep(2)
             return
-
         bird.update(key_lst, screen)
         beams.update()
         beams.draw(screen)
