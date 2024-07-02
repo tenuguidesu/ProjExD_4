@@ -73,7 +73,7 @@ class Bird(pg.sprite.Sprite):
         self.rect.center = xy
         self.speed = 10
 
-        self.state = False
+        self.hyper = False
         self.hyper_life = 0
 
     def change_img(self, num: int, screen: pg.Surface):
@@ -98,12 +98,12 @@ class Bird(pg.sprite.Sprite):
                 sum_mv[1] += mv[1]
         self.rect.move_ip(self.speed*sum_mv[0], self.speed*sum_mv[1])
 
-        if self.state:
+        if self.hyper:
             self.image = pg.transform.laplacian(self.image)
             self.hyper_life -= 1
 
             if self.hyper_life < 0:  # スイッチOFF操作
-                self.state = False
+                self.hyper = False
 
         if check_bound(self.rect) != (True, True):
             self.rect.move_ip(-self.speed*sum_mv[0], -self.speed*sum_mv[1])
@@ -274,10 +274,10 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
-            if (event.type == pg.KEYDOWN and event.key == pg.K_RSHIFT) or score.value >= 100:  # hyperモードのスイッチ
-                bird.state = True  # スイッチON
+            if (event.type == pg.KEYDOWN and event.key == pg.K_RSHIFT) and score.value >= 100:  # hyperモードのスイッチ
+                bird.hyper = True  # スイッチON
                 bird.hyper_life = 500
-                # score.value -= 100  # 消費スコア減算
+                score.value -= 100  # 消費スコア減算
 
         screen.blit(bg_img, [0, 0])
 
@@ -298,12 +298,11 @@ def main():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.value += 1  # 1点アップ
 
-        if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
-            if bird.state:
+        if len(pg.sprite.spritecollide(bird, bombs, False)) != 0:
+            if bird.hyper:
                 for bomb in pg.sprite.spritecollide(bird, bombs, True):
                     exps.add(Explosion(bomb, 50))  # 爆発エフェクト
                     score.value += 1  # 1点アップ
-
             else:
                 bird.change_img(8, screen) # こうかとん悲しみエフェクト
                 score.update(screen)
