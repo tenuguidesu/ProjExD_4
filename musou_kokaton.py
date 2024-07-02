@@ -104,6 +104,7 @@ class Bird(pg.sprite.Sprite):
 
             if self.hyper_life < 0:  # スイッチOFF操作
                 self.hyper = False
+                self.image = self.imgs[self.dire]
 
         if check_bound(self.rect) != (True, True):
             self.rect.move_ip(-self.speed*sum_mv[0], -self.speed*sum_mv[1])
